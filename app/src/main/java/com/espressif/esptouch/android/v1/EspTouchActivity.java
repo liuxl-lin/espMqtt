@@ -355,19 +355,7 @@ public class EspTouchActivity extends EspTouchActivityAbs {
                 runOnUiThread(()->{
                     mBinding.colorBar.setVisibility(View.VISIBLE);
                 });
-                new Thread(){
-                    @Override
-                    public void run() {
-                        for (int i=0;i<3;i++){
-                            response("\"mate\":\"" + topicMessage+"\"");
-                            try {
-                                sleep(1000);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                }.start();
+                response("\"mate\":\"" + topicMessage+"\"");
             } catch (MqttException e) {
                 e.printStackTrace();
             }
