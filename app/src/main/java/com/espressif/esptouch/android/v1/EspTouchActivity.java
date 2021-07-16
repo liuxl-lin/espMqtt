@@ -60,16 +60,16 @@ public class EspTouchActivity extends EspTouchActivityAbs {
     private String mSsid;
     private byte[] mSsidBytes;
     private String mBssid;
-
+    private static final String SP_KEY_CLIENT_ID = "clientID";
 
     private static MqttAndroidClient mqttAndroidClient;
     private MqttConnectOptions mMqttConnectOptions;
     public String HOST = "tcp://47.115.190.212:1883";//服务器地址（协议+地址+端口号）
-    public String USERNAME = "test";//用户名
-    public String PASSWORD = "1234567";//密码
-    public String PUBLISH_TOPIC = "kitty";//发布主题
-    public String RESPONSE_TOPIC = "kitty";//响应主题
-    public String CLIENTID = "kitty1";
+    public String USERNAME = "";//用户名
+    public String PASSWORD = "";//密码
+    public String PUBLISH_TOPIC = "";//发布主题
+    public String RESPONSE_TOPIC = "";//响应主题
+    public String CLIENTID = "";
     public String topicMessage = "";
 
 
@@ -109,11 +109,11 @@ public class EspTouchActivity extends EspTouchActivityAbs {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
         mBinding.confirmBtnMQTT.setOnClickListener(v -> {
-            USERNAME = mBinding.etDeviceId.getText().toString();
+            //  USERNAME = mBinding.etDeviceId.getText().toString();
             PASSWORD = mBinding.etPassword.getText().toString();
             topicMessage = mBinding.etTypeIdConnect.getText().toString();
             if (TextUtils.isEmpty(USERNAME)) {
-                Toast.makeText(EspTouchActivity.this, "Please type your device ID!", Toast.LENGTH_LONG).show();
+                Toast.makeText(EspTouchActivity.this, "Not Connect!", Toast.LENGTH_LONG).show();
                 return;
             }
             if (TextUtils.isEmpty(PASSWORD)) {
@@ -125,9 +125,9 @@ public class EspTouchActivity extends EspTouchActivityAbs {
                 return;
             }
 
-            PUBLISH_TOPIC = USERNAME.substring(0, USERNAME.length() - 1);
-            RESPONSE_TOPIC = PUBLISH_TOPIC;
-            CLIENTID = USERNAME;
+            //    PUBLISH_TOPIC = USERNAME.substring(0, USERNAME.length() - 1);
+            //  RESPONSE_TOPIC = PUBLISH_TOPIC;
+            //   CLIENTID = USERNAME;
             mBinding.etDeviceId.setEnabled(false);
             mBinding.etPassword.setEnabled(false);
             mBinding.confirmBtnMQTT.setEnabled(false);
@@ -144,10 +144,11 @@ public class EspTouchActivity extends EspTouchActivityAbs {
             mBinding.etPassword.setEnabled(true);
             mBinding.confirmBtnMQTT.setEnabled(true);
             mBinding.etTypeIdConnect.setEnabled(true);
-            mBinding.etDeviceId.setText("");
-            mBinding.etPassword.setText("");
+            //  mBinding.etDeviceId.setText("");
+            //  mBinding.etPassword.setText("");
             mBinding.etTypeIdConnect.setText("");
             mBinding.tvMessage.setText("");
+            //   mBinding.tvClientIDText.setText("");
             try {
                 if (mqttAndroidClient != null) {
                     mqttAndroidClient.disconnect(); //断开连接
@@ -160,10 +161,19 @@ public class EspTouchActivity extends EspTouchActivityAbs {
         });
 
         mBinding.colorBar.setOnColorChangerListener(color -> {
-            if (mqttAndroidClient!=null&&mqttAndroidClient.isConnected()){
-                response("\"RGB\":\"Red:"+ Color.red(color) +",Blue:"+Color.blue(color)+",Green:"+Color.green(color)+"\"");
+            if (mqttAndroidClient != null && mqttAndroidClient.isConnected()) {
+                response("\"RGB\":\"Red:" + Color.red(color) + ",Blue:" + Color.blue(color) + ",Green:" + Color.green(color) + "\"");
             }
         });
+
+        String clientID = getSharedPreferences(getPackageName(), MODE_PRIVATE).getString(SP_KEY_CLIENT_ID, "");
+        mBinding.tvClientIDText.setText(clientID);
+        if (!TextUtils.isEmpty(clientID)) {
+            USERNAME = clientID + "1";
+            CLIENTID = USERNAME;
+            PUBLISH_TOPIC = clientID;
+            RESPONSE_TOPIC = clientID;
+        }
     }
 
     @Override
@@ -318,9 +328,9 @@ public class EspTouchActivity extends EspTouchActivityAbs {
         public void messageArrived(String topic, MqttMessage message) throws Exception {
             Log.i(TAG, "收到消息： " + new String(message.getPayload()));
             //收到消息，这里弹出Toast表示。如果需要更新UI，可以使用广播或者EventBus进行发送
-         //   Toast.makeText(getApplicationContext(), "messageArrived: " + new String(message.getPayload()), Toast.LENGTH_LONG).show();
-            runOnUiThread(()->{
-                mBinding.tvMessage.setText(mBinding.tvMessage.getText()+"\n"+new String(message.getPayload()));
+            //   Toast.makeText(getApplicationContext(), "messageArrived: " + new String(message.getPayload()), Toast.LENGTH_LONG).show();
+            runOnUiThread(() -> {
+                mBinding.tvMessage.setText(mBinding.tvMessage.getText() + "\n" + new String(message.getPayload()));
             });
             //收到其他客户端的消息后，响应给对方告知消息已到达或者消息有问题等
             // response("message arrived");
@@ -352,10 +362,10 @@ public class EspTouchActivity extends EspTouchActivityAbs {
             try {
                 mqttAndroidClient.subscribe(PUBLISH_TOPIC, 1);//订阅主题，参数：主题、服务质量
                 Toast.makeText(getApplicationContext(), "Connect success", Toast.LENGTH_LONG).show();
-                runOnUiThread(()->{
+                runOnUiThread(() -> {
                     mBinding.colorBar.setVisibility(View.VISIBLE);
                 });
-                response("\"mate\":\"" + topicMessage+"\"");
+                response("\"mate\":\"" + topicMessage + "\"");
             } catch (MqttException e) {
                 e.printStackTrace();
             }
@@ -555,6 +565,12 @@ public class EspTouchActivity extends EspTouchActivityAbs {
                         touchResult.getBssid(), touchResult.getInetAddress().getHostAddress());
                 resultMsgList.add(message);
             }
+            activity.getSharedPreferences(activity.getPackageName(), MODE_PRIVATE).edit().putString(SP_KEY_CLIENT_ID, firstResult.getBssid()).apply();
+            activity.USERNAME = firstResult.getBssid() + "1";
+            activity.CLIENTID = activity.USERNAME;
+            activity.PUBLISH_TOPIC = firstResult.getBssid();
+            activity.RESPONSE_TOPIC = firstResult.getBssid();
+            activity.mBinding.tvClientIDText.setText(firstResult.getBssid());
             CharSequence[] items = new CharSequence[resultMsgList.size()];
             mResultDialog = new AlertDialog.Builder(activity)
                     .setTitle(R.string.esptouch1_configure_result_success)
